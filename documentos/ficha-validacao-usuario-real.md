@@ -126,9 +126,14 @@ Login como Coordenadora é necessário para as duas últimas.
 | 02 Lista da turma | `/turma/turma-b` |
 | 02b Lista · tudo registrado | `/turma/turma-a` |
 | 03 Aspiração | `/turma/turma-b/crianca/turma-b-c1` |
-| 04 Percurso | `/turma/turma-b/crianca/turma-b-c1/percurso` |
+| 04 Percurso | `/turma/turma-b/crianca/turma-b-c1/percurso?aspiration=Tecnologia` |
 | 05 Exposição | `/turma/turma-a/exposicao` |
 | 06 Confirmação | `/turma/turma-a/confirmacao` |
 | 07 Painel | `/turma/turma-a/painel` |
 | 07b Painel · amostra insuficiente | `/turma/turma-b/painel` (enquanto a turma tiver menos de 5 registros) |
 | 08 Exportação | `/turma/turma-a/exportar` |
+
+A tela 04 só existe para crianças que declararam uma aspiração — é isso que a
+US4 descreve, quando a resposta é "ainda não declarou" o fluxo pula essa etapa.
+Por isso o link acima carrega a aspiração na URL. Sem ela, o app manda de volta
+para a tela 03.

@@ -4,19 +4,18 @@
 
 Testado e validado em **Node v22.22.2**, rodando `node:sqlite` sem a flag `--experimental-sqlite` (o módulo já funciona nessa versão, emitindo apenas um `ExperimentalWarning` — isso é esperado, não é erro). Antes de rodar em outra máquina, confirme `node -v`; se a versão for muito mais antiga, pode ser necessário atualizar o Node ou adicionar a flag.
 
-## Hospedagem: servidor local, não nuvem
+## Hospedagem: Vercel pago, serviço no ar
 
-O Pitch Executivo original previa Opex R$0/mês num tier gratuito de nuvem. Ao pesquisar isso na prática, a maioria das opções gratuitas atuais (Render, Railway, Fly.io) ou não tem mais tier gratuito real, ou apaga o arquivo do banco a cada "soneca" do serviço — o que destruiria os dados entre um sábado e outro. **Decisão: rodar localmente, num computador do Instituto, na rede do sábado.** Isso elimina o problema de persistência (o disco é físico, não é apagado), mantém o Opex em R$0 de verdade, e é consistente com o fato de que todo o uso descrito da persona acontece presencialmente, no mesmo local da oficina.
+O Pitch Executivo original previa Opex R$0/mês num tier gratuito de nuvem. A pesquisa confirmou o problema: Render, Railway e Fly.io, no gratuito, ou não oferecem mais um tier real, ou apagam o arquivo do banco quando a instância dorme. Um sábado registrado some antes do seguinte.
 
-Trade-off aceito: sem acesso remoto fora da rede do Instituto. Se isso um dia for necessário, a recomendação seria migrar o banco para algo como Turso (SQLite gerenciado, compatível), mas isso está fora do escopo deste MVP.
+**Decisão: pagar a Vercel, US$ 20/mês, para o serviço permanecer no ar.** O que foi registrado fica num Postgres (Neon) ligado ao projeto, e não num arquivo dentro da função. Reiniciar o serviço não apaga o sábado anterior. Os dois backends publicados:
 
-### Ambiente de demonstração na nuvem (não é a hospedagem do produto)
+- Vercel, plano pago: https://laboratorio-sonhos.vercel.app. Esta é a operação. O plano de US$ 20/mês é o que mantém o serviço de pé.
+- Render, plano gratuito: https://laboratorio-de-sonhos-mvp.onrender.com. É o backend Express deste repositório, útil para avaliar o fluxo. Esse plano dorme em cerca de 15 minutos e, ao acordar, recria o SQLite a partir do seed. Não é onde o registro do sábado fica.
 
-Para que o app possa ser avaliado sem depender de estar na rede do Instituto, existe **em paralelo** um ambiente público de demonstração. Ele não contradiz a decisão acima, porque não é onde o dado real viveria — é uma vitrine com **dados sintéticos**, derrubada quando não for mais necessária.
+Rodar num computador do Instituto continua possível (Parte 1 do README) e custa R$0, para a rede do sábado. Deixou de ser a hospedagem escolhida, porque o acesso fora dessa rede e a continuidade entre sábados dependem do serviço pago.
 
-O comportamento desse ambiente é justamente o que a decisão acima descreve como inaceitável para produção, e aqui isso é assumido de propósito: o disco do contêiner é recriado a cada reinício, então o banco volta ao estado do seed. Para que isso não derrube o servidor, `npm run start:nuvem` roda `backend/db/prepararSeNecessario.js` antes de subir, que semeia o banco só quando ele está vazio ou com schema antigo. O arquivo `render.yaml`, na raiz do repositório, descreve o serviço.
-
-Limites assumidos nessa vitrine: login sem senha e PIN de administrador provisório, iguais aos da rede local, ficam acessíveis a quem tiver o endereço. É aceitável porque não há dado de criança real — e deixa de ser aceitável no instante em que houver. Para endurecer, basta definir `ADMIN_PIN_INICIAL` no ambiente antes do primeiro boot.
+O `npm run start:nuvem` existe para o Render: `backend/db/prepararSeNecessario.js` semeia o banco só quando ele está vazio, senão o processo encerra na verificação de versão e o contêiner reinicia em ciclo. O `render.yaml`, na raiz do repositório, descreve esse serviço.
 
 ## Sessão e controle de papel
 
@@ -84,7 +83,7 @@ Uma única operação em transação: fecha o ciclo atual (`data_fim = hoje`) e 
 
 ## Backup
 
-Rodando localmente, o risco passou de "a nuvem apagar" para "o disco falhar". `VACUUM INTO` gera uma cópia **consistente** mesmo com o servidor em uso. Há backup automático diário (14 mais recentes) e botão manual. O "último backup" exibido vem dos **arquivos da pasta** (não da auditoria), para continuar correto mesmo se o banco for recriado — inconsistência encontrada na verificação das telas e corrigida. Recomenda-se uma cópia fora da máquina.
+Na instalação local, o risco é o disco falhar. `VACUUM INTO` gera uma cópia **consistente** mesmo com o servidor em uso. Há backup automático diário (14 mais recentes) e botão manual. O "último backup" exibido vem dos **arquivos da pasta** (não da auditoria), para continuar correto mesmo se o banco for recriado — inconsistência encontrada na verificação das telas e corrigida. Recomenda-se uma cópia fora da máquina.
 
 ## Auditoria
 

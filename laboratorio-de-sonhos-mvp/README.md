@@ -1,6 +1,6 @@
 # Registro do Laboratório de Sonhos
 
-Aplicação do **Instituto Ebenézer** para registrar, ao fim da oficina de sábado, a aspiração de cada criança em poucos toques, e transformar isso em indicadores agregados por turma e por ciclo. Roda **localmente**, na rede do Instituto: sem nuvem e sem custo recorrente.
+Aplicação do **Instituto Ebenézer** para registrar, ao fim da oficina de sábado, a aspiração de cada criança em poucos toques, e transformar isso em indicadores agregados por turma e por ciclo. A operação fica na **Vercel, plano de US$ 20/mês**, com o banco em Postgres, para o serviço permanecer no ar entre um sábado e outro. Também roda na rede do Instituto, num computador local, se for o caso.
 
 - Front-end: HTML, CSS e JavaScript puro (sem framework).
 - Back-end: Node.js + Express.
@@ -9,9 +9,9 @@ Aplicação do **Instituto Ebenézer** para registrar, ao fim da oficina de sáb
 
 Código: https://github.com/allexfernand/Modulo-3---Inteli
 
-Demonstração publicada: https://laboratorio-de-sonhos-mvp.onrender.com
+Operação, no plano pago: https://laboratorio-sonhos.vercel.app
 
-A demonstração roda no plano gratuito. A instância dorme depois de cerca de 15 minutos sem acesso e demora cerca de 50 segundos para acordar. Ao acordar, o disco é recriado e o banco volta aos dados sintéticos do seed: o que foi registrado nessa demonstração não permanece. A operação de sábado, a que guarda os dados, é no computador do Instituto, como a Parte 1 descreve.
+Demonstração do backend Express, no Render gratuito: https://laboratorio-de-sonhos-mvp.onrender.com. Essa instância dorme depois de cerca de 15 minutos e, ao acordar, recria o banco com os dados sintéticos do seed. O que precisa durar de um sábado para o outro fica na Vercel.
 
 ## Vídeo demonstrativo
 
@@ -210,7 +210,7 @@ São **3 telas principais** (Perfil, Turma, Registro), como promete o pitch; o r
 9. **Quem registra nunca fica preso:** não crie sequência obrigatória; encerrar é possível a qualquer momento com ≥ 1 registro; criança ausente é um estado (`ausencias`). Pergunta principal primeiro; "Ainda não declarou" visualmente separada; campos extras (estado, percurso) **opcionais** e abaixo da pergunta principal.
 10. Saudação com o nome da sessão (nunca fixo); toda rota de `/api/*` (exceto `/api/auth`) exige login.
 11. Os **valores gravados** são os do vocabulário oficial (`vocabularios.js` = `CHECK` do schema). A tela pode mostrar nomes curtos/emoji, mas **envia o valor oficial**. (Uma divergência aqui já causou um defeito real.)
-12. Stack: Node + Express + `node:sqlite` + HTML/CSS/JS puro; **servidor local**, sem nuvem.
+12. Stack deste repositório: Node + Express + `node:sqlite` + HTML/CSS/JS puro. A hospedagem escolhida para a operação é a Vercel paga (US$ 20/mês), com Postgres; o Render gratuito é só a demonstração deste backend.
 
 ## E. Modelo de dados (resumo; ver `schema.sql`)
 

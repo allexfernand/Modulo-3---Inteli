@@ -1,4 +1,3 @@
-apiVersion: 2
 services:
   - type: web
     name: laboratorio-de-sonhos-mvp

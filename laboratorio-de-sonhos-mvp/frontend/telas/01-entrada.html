@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turma — Laboratório de Sonhos</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela">
+  <div class="cabecalho">
+    <div>
+      <h1 id="saudacao">Boa tarde</h1>
+      <div class="sub" id="data-papel"></div>
+    </div>
+    <a class="link-acao" href="#" id="trocar">Trocar perfil</a>
+  </div>
+  <div class="conteudo">
+    <div class="cartao" id="resumo-ultimo-encontro" style="display:none; background:var(--neutro-claro); cursor:default;"></div>
+
+    <p style="font-weight:700; margin:6px 0 10px;">Qual turma é hoje?</p>
+    <div id="lista-turmas"></div>
+
+    <button class="botao botao-primario" id="btn-abrir" disabled style="margin-top:14px;">Abrir turma</button>
+    <div style="height:10px;"></div>
+    <button class="botao botao-secundario" id="btn-painel" style="display:none;">📊 Painel e exportação</button>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+let turmas = [], turmaSel = null, abertas = {};
+
+async function carregar() {
+  const me = await api('/auth/me').catch(() => null);
+  if (!me) { irPara('00-login.html'); return; }
+  if (me.papel === 'administrador') { irPara('admin.html'); return; } // administrador governa, não registra
+
+  document.getElementById('saudacao').textContent = `Boa tarde, ${me.nome}`; // textContent: seguro contra HTML no nome
+  const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('data-papel').textContent = `${hoje} · ${me.papel === 'coordenadora' ? 'Coordenadora' : 'Educadora voluntária'}`;
+  if (me.papel === 'coordenadora') document.getElementById('btn-painel').style.display = 'block';
+
+  turmas = await api('/turmas');
+  for (const t of turmas) abertas[t.id] = await api(`/turmas/${t.id}/sessao-aberta`);
+  desenhar();
+  const andamento = turmas.find(t => abertas[t.id].existe);
+  selecionar((andamento || turmas[0]).id);
+}
+
+function desenhar() {
+  document.getElementById('lista-turmas').innerHTML = turmas.map(t => {
+    const ab = abertas[t.id];
+    const estado = ab.existe
+      ? `<div class="estado andamento">● Em andamento · ${ab.registrados} registradas${ab.ausentes ? ` · ${ab.ausentes} ausentes` : ''}</div>`
+      : '<div class="estado">Nova sessão</div>';
+    return `<div class="cartao cartao-turma ${turmaSel && turmaSel.id === t.id ? 'selecionado' : ''}" data-id="${Number(t.id)}">
+      <div class="ico">🎒</div>
+      <div><h3 style="margin:0 0 2px;">${esc(t.nome)} · ${esc(t.horario)}</h3><p style="margin:0;">${t.criancas} crianças</p>${estado}</div>
+    </div>`;
+  }).join('');
+}
+
+async function selecionar(id) {
+  turmaSel = turmas.find(t => t.id === id);
+  desenhar();
+  const btn = document.getElementById('btn-abrir');
+  btn.disabled = false;
+  btn.textContent = abertas[id].existe ? '▶ Continuar registro' : 'Abrir turma';
+
+  const resumo = await api(`/turmas/${id}/resumo-ultimo-encontro`);
+  const bloco = document.getElementById('resumo-ultimo-encontro');
+  if (resumo.existe) {
+    bloco.style.display = 'block';
+    bloco.innerHTML = `
+      <p style="font-size:12px; color:#6b6b76; margin:0 0 4px;">Último encontro · ${new Date(resumo.data + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+      <p style="margin:0;"><b>${resumo.registrados}</b> crianças registradas${resumo.ausentes ? ` · ${resumo.ausentes} ausentes` : ''}</p>
+      <p style="margin:0;"><b>${resumo.novasAspiracoes}</b> aspirações declaradas</p>`;
+  } else {
+    bloco.style.display = 'none';
+  }
+}
+
+document.getElementById('lista-turmas').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-id]');
+  if (card) selecionar(Number(card.dataset.id));
+});
+document.getElementById('btn-abrir').addEventListener('click', () => { estado.set('turmaAtual', turmaSel); irPara('02-lista.html'); });
+document.getElementById('btn-painel').addEventListener('click', () => irPara('07-painel.html'));
+document.getElementById('trocar').addEventListener('click', async (e) => { e.preventDefault(); await api('/auth/logout', { method: 'POST' }); irPara('00-login.html'); });
+carregar();
+</script>
+</body>
+</html>

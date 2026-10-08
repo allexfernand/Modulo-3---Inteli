@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel da turma</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela">
+  <div class="cabecalho">
+    <a class="link-voltar" href="01-entrada.html">←</a>
+    <div style="flex:1; margin-left:8px;"><h1>Painel</h1><div class="sub" id="subtitulo"></div></div>
+  </div>
+  <div class="conteudo">
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      <select id="select-turma" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--neutro-medio);"></select>
+      <select id="select-ciclo" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--neutro-medio);"></select>
+    </div>
+    <div id="corpo"></div>
+    <button class="botao botao-primario" id="btn-exportar" style="margin-top:18px; display:none;">📄 Exportar página do ciclo</button>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function carregar() {
+  const me = await api('/auth/me').catch(() => null);
+  if (!me) return;
+  if (!['coordenadora', 'administrador'].includes(me.papel)) {
+    document.querySelector('.conteudo').innerHTML = '<div class="banner-alerta">Esta tela é só para Coordenadora ou Administrador.</div>';
+    return;
+  }
+  document.querySelector('.link-voltar').href = me.papel === 'administrador' ? 'admin.html' : '01-entrada.html';
+  if (me.podeExportar) { $('btn-exportar').style.display = 'block'; $('btn-exportar').addEventListener('click', () => irPara('08-exportacao.html')); }
+
+  const [turmas, ciclos] = await Promise.all([api('/turmas'), api('/ciclos')]);
+  $('select-turma').innerHTML = turmas.map((t) => `<option value="${Number(t.id)}">${esc(t.nome)}</option>`).join('');
+  $('select-ciclo').innerHTML = ciclos.map((c) => `<option value="${Number(c.id)}" ${c.data_fim === null ? 'selected' : ''}>${esc(c.nome)}${c.data_fim === null ? ' (atual)' : ''}</option>`).join('');
+  $('select-turma').addEventListener('change', recarregar);
+  $('select-ciclo').addEventListener('change', recarregar);
+  await recarregar();
+}
+
+// "Não observado" não é um estado: não entra nas barras. Só mostra quando há observações suficientes.
+function blocoEstados(d) {
+  const observados = d.porEstadoObservado.filter((c) => c.estado !== 'Não observado');
+  const total = observados.reduce((t, c) => t + c.quantidade, 0);
+  if (total < 5) {
+    return `<p style="font-size:13px;color:#6b6b76;margin:4px 0;">Ainda poucas observações (${total} de ${d.totalRegistros} registros). Este bloco aparece a partir de 5. Para registrar, toque em "Como estava hoje?" na folha da criança.</p>`;
+  }
+  return `<p style="font-size:12px;color:#6b6b76;margin:0 0 4px;">Observado em ${total} de ${d.totalRegistros} registros.</p>` +
+    observados.map((c) => { const i = infoEstado(c.estado); return barra(i ? i.emoji : '•', i ? i.curto : c.estado, c.quantidade, total); }).join('');
+}
+
+function barra(emoji, rotulo, qtd, total) {
+  const pct = total ? Math.round((qtd / total) * 100) : 0;
+  return `<div class="barra-emoji"><div class="e">${emoji}</div><div class="corpo">
+    <div class="linha"><span>${esc(rotulo)}</span><b>${qtd} <span style="font-weight:400;color:#6b6b76;">(${pct}%)</span></b></div>
+    <div class="trilho"><div style="width:${pct}%"></div></div></div></div>`;
+}
+
+async function recarregar() {
+  const turmaId = $('select-turma').value, cicloId = $('select-ciclo').value;
+  $('subtitulo').textContent = $('select-turma').selectedOptions[0].textContent;
+  const d = await api(`/turmas/${turmaId}/painel?ciclo_id=${cicloId}`);
+  const corpo = $('corpo');
+
+  if (d.estado === 'sem_dados') {
+    corpo.innerHTML = '<div class="banner-neutro">Essa turma ainda não tem registros neste ciclo. O painel aparece depois do primeiro sábado registrado.</div>';
+    return;
+  }
+  if (d.estado === 'amostra_insuficiente') {
+    corpo.innerHTML = `<div class="banner-alerta"><strong>⚠ Amostra insuficiente</strong><br>Essa turma tem apenas ${d.totalRegistros} registros no período (mínimo de ${d.minimo}). Nenhum percentual é exibido até que haja dados suficientes, para evitar leitura enganosa.</div>`;
+    return;
+  }
+
+  const passo = d.percurso.respondidas >= 5
+    ? `<p style="font-size:13px;margin:4px 0 0;">🪜 <b>${Math.round((d.percurso.citaram / d.percurso.respondidas) * 100)}%</b> das crianças com resposta citaram um passo para chegar lá (estudar, treinar, um curso).</p>` : '';
+  const evolucao = d.evolucaoPorCiclo.filter((c) => c.totalRegistros > 0).length < 2
+    ? '<p style="font-size:13px;color:#6b6b76;">A comparação entre ciclos aparece a partir do segundo ciclo com dados.</p>'
+    : `<table class="tabela-evolucao"><tr><th>Ciclo</th><th>Registros</th><th>Categorias diferentes</th></tr>
+        ${d.evolucaoPorCiclo.map((c) => `<tr><td>${esc(c.cicloNome)}</td><td>${c.totalRegistros}</td><td>${c.amplitude}</td></tr>`).join('')}</table>`;
+
+  corpo.innerHTML = `
+    <div class="kpi-pequeno">
+      <div><b>${d.coberturaPct === null ? '—' : d.coberturaPct + '%'}</b><span>cobertura (de quem veio)</span></div>
+      <div><b>${d.aspiracoesDeclaradas}</b><span>aspirações declaradas</span></div>
+      <div><b style="color:#6b6b76;">${d.aindaNaoDeclararam}</b><span>ainda não declararam</span></div>
+    </div>
+    <p style="font-weight:700; margin:10px 0 2px;">O que querem ser</p>
+    ${d.porCategoria.map((c) => { const i = infoCategoria(c.categoria); return barra(i.emoji, i.curto, c.quantidade, d.totalRegistros); }).join('')}
+    ${passo}
+    <p style="font-weight:700; margin:18px 0 2px;">Como estavam nas oficinas</p>
+    ${blocoEstados(d)}
+    <p style="font-weight:700; margin:18px 0 2px;">Evolução entre ciclos</p>
+    ${evolucao}`;
+}
+carregar();
+</script>
+</body>
+</html>

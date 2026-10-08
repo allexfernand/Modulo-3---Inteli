@@ -1,0 +1,14 @@
+apiVersion: 2
+services:
+  - type: web
+    name: laboratorio-de-sonhos-mvp
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: laboratorio-de-sonhos-mvp
+    buildCommand: npm install
+    startCommand: npm run start:nuvem
+    envVars:
+      # Sem isso o segredo é sorteado a cada boot e todo mundo é deslogado em cada reinício.
+      - key: SEGREDO_SESSAO
+        generateValue: true

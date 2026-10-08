@@ -1,0 +1,183 @@
+# Saída real de 'npm test' — 2026-10-06T00:48:34Z — Node v22.22.2
+
+> laboratorio-de-sonhos-mvp@1.0.0 test
+> node --test testes/teste-fluxo-principal.js testes/teste-casos-limite.js testes/teste-admin.js testes/teste-registro-flexivel.js
+
+TAP version 13
+# Subtest: administrador exige PIN: sem PIN e PIN errado dão 401, PIN certo entra
+ok 1 - administrador exige PIN: sem PIN e PIN errado dão 401, PIN certo entra
+  ---
+  duration_ms: 1698.985492
+  type: 'test'
+  ...
+# Subtest: 5 PINs errados bloqueiam o login (429), inclusive com o PIN certo depois
+ok 2 - 5 PINs errados bloqueiam o login (429), inclusive com o PIN certo depois
+  ---
+  duration_ms: 331.122265
+  type: 'test'
+  ...
+# Subtest: rotas de dados exigem login (401) e administrador não registra (403)
+ok 3 - rotas de dados exigem login (401) e administrador não registra (403)
+  ---
+  duration_ms: 65.712151
+  type: 'test'
+  ...
+# Subtest: coordenadora não acessa a Administração (403); administrador acessa e recebe os KPIs
+ok 4 - coordenadora não acessa a Administração (403); administrador acessa e recebe os KPIs
+  ---
+  duration_ms: 72.587409
+  type: 'test'
+  ...
+# Subtest: lista de pessoas nunca expõe o hash do PIN
+ok 5 - lista de pessoas nunca expõe o hash do PIN
+  ---
+  duration_ms: 53.427113
+  type: 'test'
+  ...
+# Subtest: pessoa desativada perde o acesso imediatamente (sem esperar a sessão expirar)
+ok 6 - pessoa desativada perde o acesso imediatamente (sem esperar a sessão expirar)
+  ---
+  duration_ms: 86.554546
+  type: 'test'
+  ...
+# Subtest: salvaguardas: não desativa a si mesmo, não muda papel de admin, admin exige PIN válido
+ok 7 - salvaguardas: não desativa a si mesmo, não muda papel de admin, admin exige PIN válido
+  ---
+  duration_ms: 119.317666
+  type: 'test'
+  ...
+# Subtest: trocar o próprio PIN exige o PIN atual; o novo PIN passa a valer e o provisório some
+ok 8 - trocar o próprio PIN exige o PIN atual; o novo PIN passa a valer e o provisório some
+  ---
+  duration_ms: 301.457287
+  type: 'test'
+  ...
+# Subtest: "quem exporta" é permissão por pessoa, gerida pelo administrador (slide 11 do pitch)
+ok 9 - "quem exporta" é permissão por pessoa, gerida pelo administrador (slide 11 do pitch)
+  ---
+  duration_ms: 97.187516
+  type: 'test'
+  ...
+# Subtest: a visão geral lista as turmas cadastradas e a cobertura por sessão
+ok 10 - a visão geral lista as turmas cadastradas e a cobertura por sessão
+  ---
+  duration_ms: 58.095391
+  type: 'test'
+  ...
+# Subtest: backup manual devolve um arquivo SQLite válido
+ok 11 - backup manual devolve um arquivo SQLite válido
+  ---
+  duration_ms: 63.69396
+  type: 'test'
+  ...
+# Subtest: exportar a página do ciclo é contado no KPI de exportações
+ok 12 - exportar a página do ciclo é contado no KPI de exportações
+  ---
+  duration_ms: 61.587599
+  type: 'test'
+  ...
+# Subtest: encerrar ciclo: exige confirmação, bloqueia com sessão aberta, depois funciona e trava a edição
+ok 13 - encerrar ciclo: exige confirmação, bloqueia com sessão aberta, depois funciona e trava a edição
+  ---
+  duration_ms: 122.930241
+  type: 'test'
+  ...
+# Subtest: a trilha de auditoria registra as ações administrativas (sem dado de criança)
+ok 14 - a trilha de auditoria registra as ações administrativas (sem dado de criança)
+  ---
+  duration_ms: 52.487162
+  type: 'test'
+  ...
+# Subtest: exportação sem sessão retorna 401, não 200
+ok 15 - exportação sem sessão retorna 401, não 200
+  ---
+  duration_ms: 1262.968294
+  type: 'test'
+  ...
+# Subtest: exportação com papel educadora_voluntaria retorna 403
+ok 16 - exportação com papel educadora_voluntaria retorna 403
+  ---
+  duration_ms: 30.271373
+  type: 'test'
+  ...
+# Subtest: fronteira US3: 4 registros mostra amostra insuficiente, 5 não mostra
+ok 17 - fronteira US3: 4 registros mostra amostra insuficiente, 5 não mostra
+  ---
+  duration_ms: 169.45848
+  type: 'test'
+  ...
+# Subtest: US4: "Ainda não declarou" é aceito e conta como registro completo
+ok 18 - US4: "Ainda não declarou" é aceito e conta como registro completo
+  ---
+  duration_ms: 24.704293
+  type: 'test'
+  ...
+# Subtest: edição de registro é bloqueada quando o ciclo já está fechado
+ok 19 - edição de registro é bloqueada quando o ciclo já está fechado
+  ---
+  duration_ms: 9.742651
+  type: 'test'
+  ...
+# Subtest: tempo é ATIVO: ociosidade longa não infla a métrica (teto de 120s por intervalo)
+ok 20 - tempo é ATIVO: ociosidade longa não infla a métrica (teto de 120s por intervalo)
+  ---
+  duration_ms: 43.437342
+  type: 'test'
+  ...
+# Subtest: fluxo principal: registrar uma turma inteira e ver o painel agregado
+ok 21 - fluxo principal: registrar uma turma inteira e ver o painel agregado
+  ---
+  duration_ms: 1403.40351
+  type: 'test'
+  ...
+# Subtest: as 9 categorias válidas gravam; a variante antiga "(médico/enfermeiro)" é recusada com mensagem clara
+ok 22 - as 9 categorias válidas gravam; a variante antiga "(médico/enfermeiro)" é recusada com mensagem clara
+  ---
+  duration_ms: 1750.351946
+  type: 'test'
+  ...
+# Subtest: estado observado e percurso são OPCIONAIS, salvam e voltam na lista; "ainda não declarou" zera o percurso
+ok 23 - estado observado e percurso são OPCIONAIS, salvam e voltam na lista; "ainda não declarou" zera o percurso
+  ---
+  duration_ms: 47.146199
+  type: 'test'
+  ...
+# Subtest: criança AUSENTE: marca, desmarca, e registrar depois remove a ausência; registrada não vira ausente sem limpar
+ok 24 - criança AUSENTE: marca, desmarca, e registrar depois remove a ausência; registrada não vira ausente sem limpar
+  ---
+  duration_ms: 74.330683
+  type: 'test'
+  ...
+# Subtest: NÃO FICA PRESO: encerra sem registrar todo mundo; "marcar o resto como ausente" em um toque
+ok 25 - NÃO FICA PRESO: encerra sem registrar todo mundo; "marcar o resto como ausente" em um toque
+  ---
+  duration_ms: 45.946025
+  type: 'test'
+  ...
+# Subtest: encerrar também funciona deixando crianças SEM registro (não deu tempo)
+ok 26 - encerrar também funciona deixando crianças SEM registro (não deu tempo)
+  ---
+  duration_ms: 29.862961
+  type: 'test'
+  ...
+# Subtest: uma sessão aberta por turma: abrir de novo (mesmo em outra data) devolve a mesma, sem duplicar
+ok 27 - uma sessão aberta por turma: abrir de novo (mesmo em outra data) devolve a mesma, sem duplicar
+  ---
+  duration_ms: 19.993961
+  type: 'test'
+  ...
+# Subtest: a cobertura da Administração desconsidera quem faltou (ausente não entra na conta)
+ok 28 - a cobertura da Administração desconsidera quem faltou (ausente não entra na conta)
+  ---
+  duration_ms: 87.722463
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 28
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8498.59192

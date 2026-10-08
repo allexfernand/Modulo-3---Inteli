@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acesso administrativo — Laboratório de Sonhos</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela fundo-escuro">
+  <div class="conteudo" style="padding-top:60px;">
+    <p class="texto-centralizado" style="font-weight:700; letter-spacing:1px;">inteli</p>
+    <h1 class="texto-centralizado" style="margin-bottom:8px;">Acesso administrativo</h1>
+    <p class="texto-centralizado" style="font-size:13px; opacity:0.8; margin-bottom:24px;">Gestão do Instituto: indicadores, pessoas, ciclos e backup.</p>
+
+    <div class="campo" style="color:#fff; margin-bottom:12px;">
+      <label for="sel-admin">Administrador</label>
+      <select id="sel-admin"></select>
+    </div>
+    <div class="campo" style="color:#fff; margin-bottom:16px;">
+      <label for="pin">PIN</label>
+      <input id="pin" class="pin-input" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••">
+    </div>
+    <button class="botao botao-primario" id="btn-entrar" onclick="entrar()">Entrar</button>
+    <p id="mensagem" class="texto-centralizado" style="font-size:13px; color:#ffb3b3; min-height:18px;"></p>
+    <p class="texto-centralizado" style="margin-top:24px;"><a href="00-login.html" style="color:#fff; opacity:0.7; font-size:13px;">← Voltar</a></p>
+  </div>
+</div>
+
+<script>window.__LOGIN__ = '00b-admin-login.html';</script>
+<script src="../js/api.js"></script>
+<script>
+async function carregar() {
+  const admins = await api('/auth/administradores');
+  document.getElementById('sel-admin').innerHTML = admins.map(a => `<option value="${Number(a.id)}">${esc(a.nome)}</option>`).join('');
+  document.getElementById('pin').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+}
+
+async function entrar() {
+  const msg = document.getElementById('mensagem');
+  msg.textContent = '';
+  try {
+    await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ usuarioId: Number(document.getElementById('sel-admin').value), pin: document.getElementById('pin').value })
+    });
+    irPara('admin.html');
+  } catch (erro) {
+    msg.textContent = erro.message;
+    document.getElementById('pin').value = '';
+  }
+}
+
+carregar();
+</script>
+</body>
+</html>

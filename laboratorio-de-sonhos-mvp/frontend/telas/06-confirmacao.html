@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sessão encerrada</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela">
+  <div class="heroi">
+    <div style="font-size:64px;">🎉</div>
+    <h1 style="margin:8px 0 4px;">Registro do dia concluído!</h1>
+    <p id="mensagem" style="color:#555; margin:0;"></p>
+  </div>
+  <div class="conteudo">
+    <div class="kpi-pequeno">
+      <div><b id="v-reg">–</b><span>registradas</span></div>
+      <div><b id="v-aus" style="color:#6b6b76;">–</b><span>ausentes</span></div>
+      <div><b id="v-novas">–</b><span>aspirações declaradas</span></div>
+    </div>
+    <div class="cartao" style="background:var(--neutro-claro); cursor:default;">
+      <div style="display:flex; justify-content:space-between;"><span>⏱ Tempo ativo da sessão</span><strong id="v-tempo"></strong></div>
+      <div style="display:flex; justify-content:space-between; margin-top:6px;"><span>⚡ Ritmo</span><strong id="v-ritmo"></strong></div>
+    </div>
+    <button class="botao botao-primario" id="btn-painel" style="display:none;">📊 Ver painel da turma</button>
+    <button class="botao botao-secundario" id="btn-inicio">Voltar ao início</button>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+(async function () {
+  const me = await api('/auth/me').catch(() => null);
+  if (!me) return;
+  if (me.papel === 'coordenadora') document.getElementById('btn-painel').style.display = 'block';
+
+  const r = estado.get('resumoConclusao');
+  if (r) {
+    document.getElementById('v-reg').textContent = r.registrados;
+    document.getElementById('v-aus').textContent = r.ausentes;
+    document.getElementById('v-novas').textContent = r.novasAspiracoes;
+    document.getElementById('v-tempo').textContent = formatarSegundos(r.tempoTotalSegundos);
+    const ritmo = r.registrados > 0 ? Math.round(r.tempoTotalSegundos / r.registrados) : 0;
+    document.getElementById('v-ritmo').textContent = `~${ritmo}s por criança`;
+    document.getElementById('mensagem').textContent = ritmo <= 12 ? '🎯 Dentro da meta de 12s por criança.' : 'Obrigada por registrar!';
+  }
+})();
+document.getElementById('btn-painel').addEventListener('click', () => irPara('07-painel.html'));
+document.getElementById('btn-inicio').addEventListener('click', () => irPara('01-entrada.html'));
+</script>
+</body>
+</html>

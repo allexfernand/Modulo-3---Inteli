@@ -1,0 +1,57 @@
+# Saída real de testes/e2e-navegador.js (Chromium de verdade) — 2026-10-06T00:48:43Z
+== Login e escolha da turma ==
+OK   a raiz leva à tela de login
+OK   login: 2 cartões de pessoa (administrador não aparece)
+OK   turma: saudação usa o nome da sessão
+OK   turma: 2 turmas
+== Registro: uma tela só ==
+OK   registro: 30 crianças, nenhuma resolvida
+OK   todas começam pendentes
+OK   encerrar fica desativado até existir 1 registro
+OK   categoria "Profissional de saúde" agora grava (bug anterior)
+OK   o cartão mostra o ícone da categoria
+OK   aparece o aviso de confirmação ("salva sozinho")
+   (medição técnica no navegador: ~258 ms por criança, 2 toques — NÃO é o tempo de uma pessoa)
+OK   12 crianças registradas
+OK   "como estava" opcional salvo junto e exibido no cartão
+OK   "Ainda não declarou" conta como registrado
+== Criança que não veio: a pessoa não fica presa ==
+OK   3 crianças marcadas como "não veio hoje"
+OK   o anel de progresso conta registradas + ausentes (15/30)
+== Alterar um registro e filtro de pendentes ==
+OK   tocar numa registrada abre "Alterar o registro"
+OK   alteração salva e o cartão muda para 💻
+OK   filtro "Pendentes" mostra só as 15 que faltam
+== Sair e voltar: nada se perde ==
+OK   a tela de turmas mostra a sessão em andamento (12 registradas)
+OK   o botão vira "Continuar registro"
+OK   ao voltar, tudo continua salvo
+OK   banner "continuando de onde você parou"
+== Encerrar SEM registrar todo mundo ==
+OK   resumo ao encerrar: 12 registradas, 3 ausentes, 15 pendentes
+OK   confirmar só habilita depois de escolher quem conduziu
+OK   com pendentes, também exige dizer o que aconteceu com elas (decisão irreversível, sem pré-seleção)
+OK   confirmação: 12 registradas e 18 ausentes (as 15 pendentes viraram ausentes)
+OK   mostra o ritmo por criança
+== Painel (dados reais da sessão) ==
+OK   painel: cobertura em % (sobre quem veio)
+OK   painel: categorias com ícone
+OK   coordenadora com permissão vê "Exportar"
+OK   exportação sem nome de criança
+== Educadora voluntária: registra, mas não vê painel ==
+OK   educadora não vê "Painel e exportação"
+OK   educadora consegue registrar
+OK   painel bloqueado para educadora
+== Administração (computador) ==
+OK   PIN errado mostra "PIN incorreto" na tela
+OK   Administração: 7 indicadores
+OK   alerta de PIN provisório
+OK   "Cobertura de registro por sessão (%)": tabela por sessão (slide 11)
+OK   a sessão que acabou de ser encerrada aparece na lista
+OK   Pessoas: coluna "Pode exportar" (slide 11: quem exporta)
+OK   Pessoas: turmas cadastradas (slide 11)
+OK   administrador liberou a exportação para a educadora (vale na hora)
+OK   janela de troca de PIN funciona e o alerta crítico some
+OK   nenhum erro de JavaScript em nenhuma tela 
+
+TODAS AS VERIFICAÇÕES NO NAVEGADOR PASSARAM

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro — Laboratório de Sonhos</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<!--
+  TELA DE REGISTRO (a 3ª tela do pitch: "um toque por criança, salva sozinho").
+  Uma tela só: a pessoa NUNCA fica presa numa sequência.
+   - toque numa criança -> folha com ícones grandes -> toque na categoria: já salvou e a folha fecha;
+   - criança que não veio: "Não veio hoje" (ou "marcar o resto como ausente" ao encerrar);
+   - dá para encerrar a qualquer momento, mesmo sem registrar todo mundo;
+   - tocou errado? toque no cartão de novo para alterar.
+-->
+<div class="tela">
+  <header class="reg-topo">
+    <a class="link-voltar" href="01-entrada.html" aria-label="Voltar">←</a>
+    <div class="meio">
+      <h1 id="titulo">Turma</h1>
+      <div class="sub" id="subtitulo"></div>
+    </div>
+    <div class="anel" id="anel" aria-label="Progresso">
+      <svg width="54" height="54" viewBox="0 0 54 54">
+        <circle cx="27" cy="27" r="22" fill="none" stroke="#CACED6" stroke-width="6"></circle>
+        <circle id="anel-arco" cx="27" cy="27" r="22" fill="none" stroke="#066D73" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"></circle>
+      </svg>
+      <div class="num" id="anel-num">0</div>
+    </div>
+  </header>
+
+  <div id="faixa" class="faixa" hidden></div>
+
+  <div class="filtros" role="tablist">
+    <button class="filtro ativo" id="f-todas" data-filtro="todas">Todas</button>
+    <button class="filtro" id="f-pendentes" data-filtro="pendentes">Pendentes</button>
+  </div>
+
+  <main class="grade" id="grade"></main>
+
+  <footer class="barra-fixa">
+    <div class="contagem" id="contagem"></div>
+    <button class="botao botao-primario" id="btn-encerrar">Encerrar sessão</button>
+  </footer>
+
+  <div id="camada"></div>
+  <div id="toast-area"></div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+let turma = null, sessao = null, criancas = [], filtro = 'todas';
+let aberta = null;        // criança cuja folha está aberta
+let estadoTemp = null;    // "como estava" escolhido ANTES de salvar uma criança nova
+let salvando = false;
+let pend = null;          // o que fazer com as pendentes ao encerrar: escolha CONSCIENTE (é irreversível)
+let exposicao = null;
+const hoje = dataLocalISO();
+
+const $ = (id) => document.getElementById(id);
+const contar = (st) => criancas.filter((c) => c.status === st).length;
+
+// ---------------------------------------------------------------- carga
+async function iniciar() {
+  const me = await api('/auth/me').catch(() => null);
+  if (!me) return;
+  if (me.papel === 'administrador') { irPara('admin.html'); return; }
+  turma = estado.get('turmaAtual');
+  if (!turma) { irPara('01-entrada.html'); return; }
+
+  $('titulo').textContent = turma.nome;
+  $('subtitulo').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const info = await api(`/turmas/${turma.id}/sessao-aberta`);
+  if (info.existe) sessao = info.sessao;
+  await carregarLista();
+  avisarSessao();
+}
+
+async function carregarLista() {
+  criancas = await api(`/turmas/${turma.id}/criancas${sessao ? `?sessao_id=${sessao.id}` : ''}`);
+  desenhar();
+}
+
+function avisarSessao() {
+  const faixa = $('faixa');
+  if (!sessao) { faixa.hidden = true; return; }
+  const dia = new Date(sessao.data + 'T12:00:00').toLocaleDateString('pt-BR');
+  if (sessao.data !== hoje) {
+    faixa.className = 'faixa aviso';
+    faixa.textContent = `Esta sessão começou em ${dia} e ficou aberta. Continue de onde parou ou encerre.`;
+  } else if (contar('registrado') + contar('ausente') > 0) {
+    faixa.className = 'faixa';
+    faixa.textContent = '↻ Continuando de onde você parou';
+  } else { faixa.hidden = true; return; }
+  faixa.hidden = false;
+}
+
+// ---------------------------------------------------------------- lista
+function desenhar() {
+  const reg = contar('registrado'), aus = contar('ausente'), pen = contar('pendente'), total = criancas.length;
+  const resolvidas = reg + aus;
+
+  $('anel-arco').setAttribute('stroke-dashoffset', String(138.2 * (1 - (total ? resolvidas / total : 0))));
+  $('anel-num').textContent = `${resolvidas}/${total}`;
+  $('f-pendentes').textContent = `Pendentes (${pen})`;
+  $('contagem').innerHTML = `✅ ${reg} &nbsp; 🚫 ${aus} &nbsp; ⏳ ${pen}`;
+
+  const botao = $('btn-encerrar');
+  botao.disabled = reg === 0;
+  botao.textContent = reg === 0 ? 'Registre 1 criança' : 'Encerrar sessão';
+
+  const lista = filtro === 'pendentes' ? criancas.filter((c) => c.status === 'pendente') : criancas;
+  if (!lista.length) {
+    $('grade').innerHTML = '<div class="vazio-lista"><div class="big">🎉</div><b>Ninguém pendente!</b><br>Toque em "Encerrar sessão" quando quiser.</div>';
+    return;
+  }
+  $('grade').innerHTML = lista.map(cartao).join('');
+}
+
+function cartao(c) {
+  let situacao, selo = '';
+  if (c.status === 'registrado') {
+    const cat = infoCategoria(c.aspiracao), est = infoEstado(c.estado);
+    selo = `<span class="selo">${cat.emoji}</span>`;
+    situacao = `${esc(cat.curto)}${est ? ` ${est.emoji}` : ''}`;
+  } else if (c.status === 'ausente') {
+    situacao = 'Não veio hoje';
+  } else {
+    situacao = 'Toque para registrar';
+  }
+  return `<div class="card-crianca ${c.status}" data-id="${Number(c.id)}" role="button" tabindex="0">
+    <div class="av" style="background:${corAvatar(c.nome_sintetico)}">${inicial(c.nome_sintetico)}${selo}</div>
+    <div class="nome">${esc(c.nome_sintetico)}</div>
+    <div class="situacao">${situacao}</div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- folha da criança
+function abrirFolha(id) {
+  $('toast-area').innerHTML = '';   // o aviso do cartão anterior não pode ficar por cima da folha nova
+  aberta = criancas.find((c) => c.id === id);
+  estadoTemp = null;
+  desenharFolha();
+}
+
+function fecharFolha() { aberta = null; $('camada').innerHTML = ''; }
+
+function tile(cat, selecionada) {
+  return `<button class="tile ${selecionada === cat.nome ? 'sel' : ''}" data-cat="${esc(cat.nome)}">
+    <span class="e">${cat.emoji}</span><span>${esc(cat.curto)}${cat.sub ? `<small>${esc(cat.sub)}</small>` : ''}</span>
+  </button>`;
+}
+
+function desenharFolha() {
+  const c = aberta, nome = esc(c.nome_sintetico);
+  const reg = c.status === 'registrado', aus = c.status === 'ausente';
+  const estadoAtual = reg ? c.estado : estadoTemp;
+  const titulo = reg ? `Alterar o registro de ${nome}` : (aus ? `${nome} estava ausente` : `O que ${nome} disse que quer ser?`);
+
+  // OPCIONAL: fica DEPOIS da pergunta principal (a categoria) e compacto
+  const linhaEstado = `<div class="rotulo">Como estava hoje? <i>(opcional)</i></div>
+    <div class="mini-linha">${ESTADOS.map((e) => `<button class="mini mini-estado ${estadoAtual === e.nome ? 'sel' : ''}" data-estado="${esc(e.nome)}"><span class="e">${e.emoji}</span>${esc(e.curto)}</button>`).join('')}</div>`;
+
+  const linhaPercurso = reg && c.aspiracao !== SEM_DECLARACAO
+    ? `<div class="rotulo">Citou um passo para chegar lá? <i>(estudar, treinar, um curso — opcional)</i></div>
+       <div class="mini-linha">
+         <button class="mini ${c.percurso === true ? 'sel' : ''}" data-perc="sim">Sim</button>
+         <button class="mini ${c.percurso === false ? 'sel' : ''}" data-perc="nao">Não</button></div>` : '';
+
+  const acoes = reg
+    ? '<button class="btn-texto perigo" data-acao="limpar">Limpar registro</button>'
+    : aus ? '<button class="btn-texto" data-acao="presente">Estava presente (desmarcar ausência)</button>'
+          : '<button class="btn-texto" data-acao="ausente">🚫 Não veio hoje</button>';
+
+  $('camada').innerHTML = `<div class="folha-fundo" data-fundo="1"><div class="folha" role="dialog" aria-label="Registro de ${nome}">
+    <div class="alca"></div>
+    <button class="fechar-folha" data-acao="fechar" aria-label="Fechar">✕</button>
+    <h2>${titulo}</h2>
+    <div class="rotulo" style="margin-top:0;">${reg ? 'Mudar para:' : 'Toque na resposta — já salva sozinho'}</div>
+    <div class="tiles">${CATEGORIAS.map((cat) => tile(cat, reg ? c.aspiracao : null)).join('')}</div>
+    <button class="tile tile-especial ${reg && c.aspiracao === SEM_DECLARACAO ? 'sel' : ''}" data-cat="${esc(SEM_DECLARACAO)}">
+      <span class="e">🤔</span><span>Ainda não declarou<small>conta como registrado</small></span></button>
+    ${aus ? '' : linhaEstado}
+    ${linhaPercurso}
+    <div class="acoes-folha">${acoes}</div>
+  </div></div>`;
+}
+
+async function escolherCategoria(nomeCategoria) {
+  if (salvando || !aberta) return;
+  salvando = true;
+  const c = aberta, cat = infoCategoria(nomeCategoria), eraRegistrada = c.status === 'registrado';
+  try {
+    if (eraRegistrada) {
+      await api(`/registros/${c.registroId}`, { method: 'PUT', body: JSON.stringify({ aspiracaoCategoria: nomeCategoria }) });
+    } else {
+      const s = await garantirSessao();
+      await api('/registros', { method: 'POST', body: JSON.stringify({ sessaoId: s.id, criancaId: c.id, aspiracaoCategoria: nomeCategoria, estadoObservado: estadoTemp || undefined }) });
+    }
+    await carregarLista();
+    fecharFolha();
+    avisar(`${cat.emoji} ${c.nome_sintetico}: ${cat.curto}`);
+    if (!eraRegistrada) focarProxima(c.id);
+  } catch (e) { avisar(e.message, true); } finally { salvando = false; }
+}
+
+// a sessão só nasce no PRIMEIRO toque (abrir a tela sem registrar não deixa sessão vazia)
+async function garantirSessao() {
+  if (sessao) return sessao;
+  const r = await api('/sessoes', { method: 'POST', body: JSON.stringify({ turmaId: turma.id, data: hoje }) });
+  sessao = r.sessao;
+  return sessao;
+}
+
+async function escolherEstado(nomeEstado) {
+  const c = aberta;
+  if (c.status === 'registrado') {
+    const novo = c.estado === nomeEstado ? 'Não observado' : nomeEstado;   // tocar de novo desmarca
+    try {
+      await api(`/registros/${c.registroId}`, { method: 'PUT', body: JSON.stringify({ estadoObservado: novo }) });
+      await carregarLista();
+      aberta = criancas.find((x) => x.id === c.id);
+    } catch (e) { avisar(e.message, true); }
+  } else {
+    estadoTemp = estadoTemp === nomeEstado ? null : nomeEstado;
+  }
+  desenharFolha();
+}
+
+async function escolherPercurso(valor) {
+  const c = aberta;
+  const escolhido = valor === 'sim';
+  const novo = c.percurso === escolhido ? null : escolhido;               // tocar de novo desmarca
+  try {
+    await api(`/registros/${c.registroId}`, { method: 'PUT', body: JSON.stringify({ percursoSimNao: novo }) });
+    await carregarLista();
+    aberta = criancas.find((x) => x.id === c.id);
+    desenharFolha();
+  } catch (e) { avisar(e.message, true); }
+}
+
+async function acaoFolha(acao) {
+  const c = aberta;
+  if (acao === 'fechar') return fecharFolha();
+  try {
+    if (acao === 'ausente') {
+      const s = await garantirSessao();
+      await api(`/sessoes/${s.id}/ausencias`, { method: 'POST', body: JSON.stringify({ criancaId: c.id }) });
+      avisar(`🚫 ${c.nome_sintetico}: não veio hoje`);
+    } else if (acao === 'presente') {
+      await api(`/sessoes/${sessao.id}/ausencias/${c.id}`, { method: 'DELETE' });
+    } else if (acao === 'limpar') {
+      if (!confirm(`Limpar o registro de ${c.nome_sintetico}? A criança volta a ficar pendente.`)) return;
+      await api(`/registros/${c.registroId}`, { method: 'DELETE' });
+    }
+    await carregarLista();
+    fecharFolha();
+  } catch (e) { avisar(e.message, true); }
+}
+
+// rola até a próxima criança pendente (depois da que acabou de ser salva) e a destaca
+function focarProxima(idAtual) {
+  const i = criancas.findIndex((c) => c.id === idAtual);
+  const proxima = criancas.slice(i + 1).find((c) => c.status === 'pendente') || criancas.find((c) => c.status === 'pendente');
+  if (!proxima) return;
+  const el = document.querySelector(`.card-crianca[data-id="${proxima.id}"]`);
+  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('destaque'); setTimeout(() => el.classList.remove('destaque'), 1300); }
+}
+
+// ---------------------------------------------------------------- encerrar
+function abrirEncerrar() {
+  $('toast-area').innerHTML = '';
+  exposicao = null; pend = null;
+  desenharEncerrar();
+}
+
+function desenharEncerrar() {
+  const reg = contar('registrado'), aus = contar('ausente'), pen = contar('pendente');
+  const opcoesPend = pen > 0 ? `<div class="rotulo">${pen} ${pen === 1 ? 'criança ficou' : 'crianças ficaram'} sem registro — o que aconteceu? <b>(escolha uma)</b></div>
+    <div class="mini-linha">
+      <button class="mini ${pend === 'ausentes' ? 'sel' : ''}" data-pend="ausentes">🚫 Não vieram: marcar ${pen === 1 ? 'a criança' : `as ${pen}`} como ausente${pen === 1 ? '' : 's'}</button>
+      <button class="mini ${pend === 'deixar' ? 'sel' : ''}" data-pend="deixar">Deixar sem registro</button></div>` : '';
+  $('camada').innerHTML = `<div class="folha-fundo" data-fundo="1"><div class="folha" role="dialog" aria-label="Encerrar sessão">
+    <div class="alca"></div>
+    <button class="fechar-folha" data-acao="fechar" aria-label="Fechar">✕</button>
+    <h2>Encerrar a sessão de hoje</h2>
+    <div class="resumo-chips">
+      <div class="resumo-chip ok"><b>${reg}</b><span>registradas</span></div>
+      <div class="resumo-chip"><b>${aus}</b><span>ausentes</span></div>
+      <div class="resumo-chip pend"><b>${pen}</b><span>pendentes</span></div>
+    </div>
+    ${opcoesPend}
+    <div class="rotulo">Quem conduziu a oficina hoje? <b>(um toque)</b></div>
+    <div class="tiles">${EXPOSICOES.map((e) => `<button class="tile tile-largo ${exposicao === e.nome ? 'sel' : ''}" data-expo="${esc(e.nome)}"><span class="e">${e.emoji}</span><span>${esc(e.nome)}</span></button>`).join('')}</div>
+    <button class="botao botao-primario" id="btn-confirmar" style="margin-top:16px;" ${exposicao && (pen === 0 || pend) ? '' : 'disabled'}>Confirmar e encerrar</button>
+    <p style="font-size:12px; color:#6b6b76; text-align:center; margin:6px 0 0;">Depois de confirmar, a exposição do dia não pode ser alterada.</p>
+  </div></div>`;
+}
+
+async function confirmarEncerrar() {
+  if (salvando || !exposicao || (contar('pendente') > 0 && !pend)) return;
+  salvando = true;
+  try {
+    if (contar('pendente') > 0 && pend === 'ausentes') {
+      await api(`/sessoes/${sessao.id}/ausencias`, { method: 'POST', body: JSON.stringify({ todosPendentes: true }) });
+    }
+    const r = await api(`/sessoes/${sessao.id}/concluir`, { method: 'POST', body: JSON.stringify({ exposicaoProfissional: exposicao }) });
+    estado.set('resumoConclusao', r);
+    irPara('06-confirmacao.html');
+  } catch (e) { avisar(e.message, true); salvando = false; }
+}
+
+// ---------------------------------------------------------------- avisos e eventos
+let tToast = null;
+function avisar(texto, erro) {
+  $('toast-area').innerHTML = `<div class="toast ${erro ? 'erro' : ''}" role="status">${esc(texto)}</div>`;
+  clearTimeout(tToast);
+  tToast = setTimeout(() => { $('toast-area').innerHTML = ''; }, erro ? 4500 : 2200);
+}
+
+$('grade').addEventListener('click', (e) => { const el = e.target.closest('.card-crianca'); if (el) abrirFolha(Number(el.dataset.id)); });
+$('grade').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { const el = e.target.closest('.card-crianca'); if (el) { e.preventDefault(); abrirFolha(Number(el.dataset.id)); } }
+});
+document.querySelectorAll('.filtro').forEach((b) => b.addEventListener('click', () => {
+  filtro = b.dataset.filtro;
+  document.querySelectorAll('.filtro').forEach((x) => x.classList.toggle('ativo', x === b));
+  desenhar();
+}));
+$('btn-encerrar').addEventListener('click', abrirEncerrar);
+
+$('camada').addEventListener('click', (e) => {
+  if (e.target.dataset.fundo) return fecharFolha();                       // toque fora = fecha
+  const alvo = e.target.closest('[data-cat],[data-estado],[data-perc],[data-acao],[data-pend],[data-expo],#btn-confirmar');
+  if (!alvo) return;
+  if (alvo.dataset.cat) return escolherCategoria(alvo.dataset.cat);
+  if (alvo.dataset.estado) return escolherEstado(alvo.dataset.estado);
+  if (alvo.dataset.perc) return escolherPercurso(alvo.dataset.perc);
+  if (alvo.dataset.acao) return acaoFolha(alvo.dataset.acao);
+  if (alvo.dataset.pend) { pend = alvo.dataset.pend; return desenharEncerrar(); }
+  if (alvo.dataset.expo) { exposicao = alvo.dataset.expo; return desenharEncerrar(); }
+  if (alvo.id === 'btn-confirmar') return confirmarEncerrar();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharFolha(); });
+
+iniciar();
+</script>
+</body>
+</html>

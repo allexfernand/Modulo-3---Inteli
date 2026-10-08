@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Laboratório de Sonhos</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela fundo-escuro">
+  <div class="conteudo" style="padding-top:56px;">
+    <p class="texto-centralizado" style="font-weight:700; letter-spacing:1px; margin:0 0 4px;">inteli</p>
+    <p class="texto-centralizado" style="font-size:13px; opacity:.75; margin:0 0 28px;">Laboratório de Sonhos</p>
+    <h1 class="texto-centralizado" style="margin:0 0 20px; font-size:24px;">Quem está registrando hoje?</h1>
+    <div id="lista-usuarios"></div>
+    <p class="texto-centralizado" style="font-size:12px; opacity:0.7;">Um toque no seu perfil já é suficiente.</p>
+    <p class="texto-centralizado" style="margin-top:36px;"><a href="00b-admin-login.html" style="color:#fff; opacity:0.6; font-size:12px;">Acesso administrativo</a></p>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+async function carregar() {
+  const usuarios = await api('/auth/usuarios');
+  const container = document.getElementById('lista-usuarios');
+  if (!usuarios.length) {
+    container.innerHTML = '<p class="texto-centralizado">Nenhuma pessoa ativa cadastrada. Peça ao administrador do Instituto.</p>';
+    return;
+  }
+  container.innerHTML = usuarios.map(u => `
+    <div class="cartao cartao-turma" style="background:var(--branco); color:var(--texto-principal);" data-id="${Number(u.id)}">
+      <div class="av" style="width:46px;height:46px;border-radius:50%;background:${corAvatar(u.nome)};color:#fff;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;flex:none;">${inicial(u.nome)}</div>
+      <div>
+        <h3 style="margin:0 0 2px;">${esc(u.nome)}</h3>
+        <p style="color:#555; margin:0;">${u.papel === 'coordenadora' ? 'Coordenadora · painel e exportação' : 'Educadora voluntária · registra a turma'}</p>
+      </div>
+    </div>`).join('');
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-id]');
+    if (card) escolher(Number(card.dataset.id));
+  });
+}
+
+async function escolher(usuarioId) {
+  await api('/auth/login', { method: 'POST', body: JSON.stringify({ usuarioId }) });
+  irPara('01-entrada.html');
+}
+carregar();
+</script>
+</body>
+</html>

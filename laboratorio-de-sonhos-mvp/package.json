@@ -1,0 +1,21 @@
+{
+  "name": "laboratorio-de-sonhos-mvp",
+  "version": "1.0.0",
+  "description": "Registro do Laboratório de Sonhos - Instituto Ebenezer - MVP Funcional",
+  "main": "backend/server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node backend/server.js",
+    "seed": "node backend/db/seed.js",
+    "preparar-banco": "node backend/db/prepararSeNecessario.js",
+    "start:nuvem": "npm run preparar-banco && npm start",
+    "test": "node --test --test-concurrency=1 testes/teste-fluxo-principal.js testes/teste-casos-limite.js testes/teste-admin.js testes/teste-registro-flexivel.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  },
+  "devDependencies": {}
+}

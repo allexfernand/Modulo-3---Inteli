@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exportar página do ciclo</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+<div class="tela">
+  <div class="cabecalho">
+    <a class="link-voltar" href="07-painel.html">←</a>
+    <h1>Exportar página do ciclo</h1>
+  </div>
+  <div class="conteudo">
+    <div class="campo" style="margin-bottom:12px; display:flex; flex-direction:column; gap:4px; font-size:12px; color:#555;"><label for="sel-ciclo">Ciclo</label><select id="sel-ciclo" style="padding:10px; border-radius:12px; border:1px solid var(--neutro-medio);"></select></div>
+    <div id="conteudo">Carregando...</div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+let cicloAtualId = null;
+
+async function carregar() {
+  const me = await api('/auth/me').catch(() => null);
+  if (!me) return;
+  if (me.papel === 'administrador') document.querySelector('.link-voltar').href = 'admin.html';
+
+  const ciclos = await api('/ciclos');
+  // Depois que um ciclo é encerrado, o "atual" passa a ser o novo (vazio). O seletor mantém a
+  // versão final do ciclo encerrado acessível.
+  document.getElementById('sel-ciclo').innerHTML = ciclos.map((c) => `<option value="${Number(c.id)}">${esc(c.nome)}${c.data_fim ? ' (encerrado)' : ' (atual)'}</option>`).join('');
+  const atual = ciclos.find((c) => c.data_fim === null) || ciclos[0];
+  document.getElementById('sel-ciclo').value = atual.id;
+  document.getElementById('sel-ciclo').addEventListener('change', (e) => carregarCiclo(e.target.value));
+  await carregarCiclo(atual.id);
+}
+
+async function carregarCiclo(id) {
+  cicloAtualId = Number(id);
+  try {
+    renderizar(await api(`/ciclos/${cicloAtualId}/exportacao`));
+  } catch (erro) {
+    document.getElementById('conteudo').innerHTML = `<div class="banner-alerta">${esc(erro.message)}</div>`;
+  }
+}
+
+function renderizar(d) {
+  document.getElementById('conteudo').innerHTML = `
+    <div class="cartao" style="cursor:default;">
+      <div style="width:40px; height:12px; background:var(--roxo-escuro); border-radius:4px; margin-bottom:10px;"></div>
+      <h3>Laboratório de Sonhos — ${esc(d.ciclo)}</h3>
+      <p>Indicador de repertório profissional · dados agregados por turma, ambas as turmas do programa</p>
+      ${d.porTurma.map((t) => `
+        <p style="font-weight:700; margin:14px 0 4px; color:var(--texto-principal);">${esc(t.turma)} — ${t.totalRegistros} registros</p>
+        ${t.porCategoria.map((c) => { const i = infoCategoria(c.categoria); return `<div style="font-size:13px; color:var(--texto-principal);">${i.emoji} ${esc(i.curto)}: <b>${c.quantidade}</b></div>`; }).join('') || '<div style="font-size:12px;">Sem registros neste ciclo.</div>'}
+        ${t.porEstadoObservado.length ? '<p style="font-size:12px; margin:8px 0 2px; color:#6b6b76;">Como estavam nas oficinas</p>' + t.porEstadoObservado.map((c) => { const i = infoEstado(c.estado); return `<div style="font-size:12px; color:var(--texto-principal);">${i ? i.emoji : '▫️'} ${esc(c.estado)}: ${c.quantidade}</div>`; }).join('') : ''}
+      `).join('')}
+      <p style="font-weight:700; margin:16px 0 2px; color:var(--texto-principal);">Evolução entre ciclos (todas as turmas)</p>
+      <table class="tabela-evolucao"><tr><th>Ciclo</th><th>Registros</th><th>Categorias diferentes</th></tr>
+        ${d.evolucaoGeral.map((c) => `<tr><td>${esc(c.cicloNome)}</td><td>${c.totalRegistros}</td><td>${c.amplitude}</td></tr>`).join('')}
+      </table>
+    </div>
+    <p style="font-size:12px; color:#6b6b76;">🔒 ${esc(d.observacao)} Disponível só a quem tem permissão de exportar.</p>
+    <button class="botao botao-primario" id="btn-pdf">Baixar PDF</button>`;
+  document.getElementById('btn-pdf').addEventListener('click', baixarPdf);
+}
+
+// Registra a exportação (alimenta o KPI da Administração) e abre a impressão/PDF do navegador
+async function baixarPdf() {
+  await api(`/ciclos/${cicloAtualId}/exportacao/registro`, { method: 'POST' }).catch(() => {});
+  window.print();
+}
+carregar();
+</script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administração — Laboratório de Sonhos</title>
+<link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body class="admin">
+<div class="admin-wrap">
+  <header class="admin-topo">
+    <h1>Administração · Laboratório de Sonhos</h1>
+    <div><span class="quem" id="quem"></span><button class="btn-topo" onclick="sair()">Sair</button></div>
+  </header>
+  <nav class="abas">
+    <button class="aba ativa" data-aba="visao" onclick="mostrarAba('visao')">Visão geral</button>
+    <button class="aba" data-aba="pessoas" onclick="mostrarAba('pessoas')">Pessoas e acessos</button>
+    <button class="aba" data-aba="ciclos" onclick="mostrarAba('ciclos')">Ciclos</button>
+    <button class="aba" data-aba="sistema" onclick="mostrarAba('sistema')">Sistema e auditoria</button>
+  </nav>
+
+  <div class="admin-corpo">
+    <div id="alertas"></div>
+
+    <!-- ===== 1. VISÃO GERAL (KPIs ligados à matriz de riscos do Pitch) ===== -->
+    <section id="aba-visao">
+      <div class="linha-form">
+        <div class="campo"><label for="sel-ciclo">Ciclo</label><select id="sel-ciclo" onchange="carregarVisao(this.value)"></select></div>
+        <a class="btn btn-s" href="07-painel.html" style="text-decoration:none;">Painel das turmas</a>
+        <a class="btn btn-s" href="08-exportacao.html" style="text-decoration:none;">Página do ciclo (exportação)</a>
+      </div>
+      <h2>Indicadores de operação</h2>
+      <div class="grade-kpi" id="kpis"></div>
+      <h2>Por turma</h2>
+      <div class="tabela-rolavel"><table class="dados" id="tab-turmas"></table></div>
+      <h2>Cobertura de registro por sessão (%)</h2>
+      <p style="font-size:13px; color:#6b6b76; margin:0 0 6px;">Registradas ÷ crianças presentes (quem não veio não entra na conta). As 10 sessões mais recentes do ciclo.</p>
+      <div class="tabela-rolavel"><table class="dados" id="tab-sessoes"></table></div>
+      <h2>Amplitude de categorias por ciclo</h2>
+      <p style="font-size:13px; color:#6b6b76; margin:0 0 6px;">Quantas categorias de aspiração diferentes apareceram (sem contar "Ainda não declarou"). É o argumento de repertório para o relatório.</p>
+      <div class="tabela-rolavel"><table class="dados" id="tab-amplitude"></table></div>
+    </section>
+
+    <!-- ===== 2. PESSOAS ===== -->
+    <section id="aba-pessoas" hidden>
+      <h2>Equipe cadastrada</h2>
+      <p style="font-size:13px; color:#6b6b76; margin:0 0 6px;">Pessoas são desativadas, nunca excluídas: as sessões antigas continuam mostrando quem registrou. Um desativado perde o acesso na hora.</p>
+      <div class="tabela-rolavel"><table class="dados" id="tab-pessoas"></table></div>
+      <p style="font-size:13px; color:#6b6b76; margin:6px 0 0;"><b>Pode exportar</b> = quem pode gerar a página do ciclo para a diretoria/financiador. Vale na hora, sem a pessoa precisar sair e entrar de novo. O administrador sempre pode.</p>
+      <h2>Turmas cadastradas</h2>
+      <div class="tabela-rolavel"><table class="dados" id="tab-turmas-cad"></table></div>
+      <p style="font-size:13px; color:#6b6b76; margin:6px 0 0;">Neste MVP as turmas e as crianças (sintéticas) são fixas. Cadastrar ou remover turma/criança fica para depois da validação LGPD com a psicóloga (risco H3).</p>
+      <div class="caixa">
+        <strong>Nova pessoa</strong>
+        <div class="linha-form">
+          <div class="campo"><label for="np-nome">Nome</label><input id="np-nome" maxlength="60"></div>
+          <div class="campo"><label for="np-papel">Papel</label>
+            <select id="np-papel" onchange="document.getElementById('np-pin-campo').hidden = this.value !== 'administrador'; document.getElementById('np-exporta').checked = this.value === 'coordenadora'">
+              <option value="educadora_voluntaria">Educadora voluntária</option>
+              <option value="coordenadora">Coordenadora</option>
+              <option value="administrador">Administrador</option>
+            </select></div>
+          <label style="font-size:13px; display:flex; gap:6px; align-items:center; padding-bottom:8px;"><input type="checkbox" id="np-exporta"> Pode exportar</label>
+          <div class="campo" id="np-pin-campo" hidden><label for="np-pin">PIN inicial (4–8 dígitos)</label><input id="np-pin" type="password" inputmode="numeric" maxlength="8"></div>
+          <button class="btn btn-p" onclick="criarPessoa()">Cadastrar</button>
+        </div>
+        <div class="msg" id="msg-pessoa"></div>
+      </div>
+    </section>
+
+    <!-- ===== 3. CICLOS ===== -->
+    <section id="aba-ciclos" hidden>
+      <h2>Ciclos</h2>
+      <div class="tabela-rolavel"><table class="dados" id="tab-ciclos"></table></div>
+      <div class="caixa">
+        <strong>Encerrar o ciclo atual e abrir o próximo</strong>
+        <p style="font-size:13px; color:#555;">Ao encerrar: os registros do ciclo ficam <b>travados para edição</b> (preserva a série histórica usada nos relatórios) e a página do ciclo pode ser exportada como versão final. <b>Isso não pode ser desfeito.</b> Só é possível se não houver sessão em andamento ou pausada.</p>
+        <div class="linha-form">
+          <div class="campo"><label for="nc-nome">Nome do novo ciclo</label><input id="nc-nome" maxlength="60" placeholder="ex.: Ciclo 2027-1"></div>
+          <label style="font-size:13px; display:flex; gap:6px; align-items:center;"><input type="checkbox" id="nc-confirma"> Entendo que não pode ser desfeito</label>
+          <button class="btn btn-perigo" onclick="encerrarCiclo()">Encerrar ciclo</button>
+        </div>
+        <div class="msg" id="msg-ciclo"></div>
+      </div>
+    </section>
+
+    <!-- ===== 4. SISTEMA ===== -->
+    <section id="aba-sistema" hidden>
+      <h2>Backup do banco</h2>
+      <div class="caixa">
+        <p style="margin:0 0 8px; font-size:14px;" id="info-backup"></p>
+        <p style="margin:0 0 10px; font-size:13px; color:#6b6b76;">O sistema faz um backup automático por dia (guarda os 14 mais recentes na pasta <code>backups/</code>). Guarde também uma cópia <b>fora desta máquina</b> (pen drive ou nuvem do Instituto): se o disco falhar, o backup na mesma máquina falha junto.</p>
+        <button class="btn btn-p" onclick="baixarBackup()">Baixar backup agora</button>
+        <div class="msg" id="msg-backup"></div>
+      </div>
+
+      <h2>Rotina de gestão</h2>
+      <ul class="lista-rotina">
+        <li><b>Todo sábado:</b> a coordenação/educadora registra a turma (meta ~12s por criança).</li>
+        <li><b>Segunda-feira (5 min):</b> abrir a Visão geral e conferir se há alertas (turma sem registro, ritmo acima da meta).</li>
+        <li><b>Todo mês:</b> revisar o painel das turmas e baixar um backup para fora da máquina.</li>
+        <li><b>Fim do ciclo:</b> encerrar o ciclo, exportar a página e entregá-la à diretoria/financiador.</li>
+      </ul>
+
+      <h2>Trilha de auditoria (últimas 50 ações)</h2>
+      <div class="tabela-rolavel"><table class="dados" id="tab-auditoria"></table></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg-pin">
+  <h3 style="margin-top:0;" id="dlg-pin-titulo">Definir PIN</h3>
+  <div class="campo" id="dlg-atual-campo" style="margin-bottom:10px;"><label for="dlg-atual">PIN atual</label><input id="dlg-atual" class="pin-input" type="password" inputmode="numeric" maxlength="8"></div>
+  <div class="campo" style="margin-bottom:10px;"><label for="dlg-novo">Novo PIN (4–8 dígitos)</label><input id="dlg-novo" class="pin-input" type="password" inputmode="numeric" maxlength="8"></div>
+  <div class="campo" style="margin-bottom:10px;"><label for="dlg-conf">Repita o novo PIN</label><input id="dlg-conf" class="pin-input" type="password" inputmode="numeric" maxlength="8"></div>
+  <div class="msg erro" id="dlg-msg"></div>
+  <div class="linha-form" style="justify-content:flex-end;">
+    <button class="btn btn-s" onclick="document.getElementById('dlg-pin').close()">Cancelar</button>
+    <button class="btn btn-p" onclick="salvarPin()">Salvar PIN</button>
+  </div>
+</dialog>
+
+<script>window.__LOGIN__ = '00b-admin-login.html';</script>
+<script src="../js/api.js"></script>
+<script>
+let eu = null;
+let ultimaVisao = null;
+let pinAlvo = null;
+
+const ROTULOS_ACAO = {
+  login_admin: 'Login de administrador', login_admin_falhou: 'PIN incorreto no login', login_admin_bloqueado: 'Login bloqueado (5 PINs incorretos)',
+  usuario_criado: 'Pessoa cadastrada', usuario_alterado: 'Pessoa alterada', pin_alterado: 'PIN alterado',
+  ciclo_encerrado: 'Ciclo encerrado', backup_manual: 'Backup manual', backup_automatico: 'Backup automático', exportacao: 'Página do ciclo exportada'
+};
+const ROTULOS_PAPEL = { coordenadora: 'Coordenadora', educadora_voluntaria: 'Educadora voluntária', administrador: 'Administrador' };
+
+function dataHora(bruto) {
+  if (!bruto) return '—';
+  const iso = bruto.includes('T') ? bruto : bruto.replace(' ', 'T') + 'Z'; // SQLite grava em UTC
+  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+function mensagem(id, texto, tipo) {
+  const el = document.getElementById(id);
+  el.textContent = texto || '';
+  el.className = 'msg' + (tipo ? ' ' + tipo : '');
+}
+
+async function iniciar() {
+  try { eu = await api('/auth/me'); } catch { irPara('00b-admin-login.html'); return; }
+  if (eu.papel !== 'administrador') {
+    document.querySelector('.admin-corpo').innerHTML = '<div class="alerta critico">Esta área é só para o papel Administrador. <a href="00b-admin-login.html">Entrar como administrador</a></div>';
+    document.querySelector('.abas').hidden = true;
+    return;
+  }
+  document.getElementById('quem').textContent = eu.nome;
+  await carregarVisao();
+}
+
+async function sair() { await api('/auth/logout', { method: 'POST' }); irPara('00-login.html'); }
+
+function mostrarAba(nome) {
+  document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  ['visao', 'pessoas', 'ciclos', 'sistema'].forEach(a => { document.getElementById('aba-' + a).hidden = a !== nome; });
+  if (nome === 'pessoas') carregarPessoas();
+  if (nome === 'ciclos') renderCiclos();
+  if (nome === 'sistema') { renderBackup(); carregarAuditoria(); }
+}
+
+// ---------- 1. Visão geral ----------
+function kpi(rotulo, valor, detalhe, nivel, pequeno) {
+  return `<div class="kpi ${nivel || ''}"><div class="rotulo">${rotulo}</div><div class="valor ${pequeno ? 'pequeno' : ''}">${valor}</div><div class="detalhe">${detalhe || ''}</div></div>`;
+}
+const pct = (v) => v === null || v === undefined ? '—' : v + '%';
+
+async function carregarVisao(cicloId) {
+  const d = await api('/admin/overview' + (cicloId ? `?ciclo_id=${Number(cicloId)}` : ''));
+  ultimaVisao = d;
+  const k = d.kpis, meta = d.metaSegundosPorCrianca;
+
+  document.getElementById('sel-ciclo').innerHTML = d.ciclos.map(c =>
+    `<option value="${Number(c.id)}" ${c.id === d.ciclo.id ? 'selected' : ''}>${esc(c.nome)}${c.data_fim ? '' : ' (atual)'}</option>`).join('');
+
+  document.getElementById('alertas').innerHTML = d.alertas.length
+    ? d.alertas.map(a => `<div class="alerta ${a.nivel}">${esc(a.mensagem)}</div>`).join('')
+    : '<div class="alerta ok">Tudo em ordem: nenhum alerta no momento.</div>';
+
+  const tempoNivel = k.tempoMedioPorCriancaSegundos === null ? '' : (k.tempoMedioPorCriancaSegundos <= meta ? 'ok' : 'atencao');
+  document.getElementById('kpis').innerHTML = [
+    kpi('Tempo médio por criança', k.tempoMedioPorCriancaSegundos === null ? '—' : k.tempoMedioPorCriancaSegundos + 's', `meta: ${meta}s · risco H1`, tempoNivel),
+    kpi('Sessões acima da meta', pct(k.pctSessoesAcimaDaMeta), 'ritmo > ' + meta + 's por criança', k.pctSessoesAcimaDaMeta > 30 ? 'atencao' : ''),
+    kpi('Cobertura média de registro', pct(k.coberturaMediaPct), 'crianças registradas por sessão', k.coberturaMediaPct !== null && k.coberturaMediaPct < 80 ? 'atencao' : ''),
+    kpi('Regularidade', pct(k.regularidadePct), `${k.sabadosRegistrados} de ${k.sabadosEsperados} sábados registrados (todas as turmas) · risco H5`, k.regularidadePct === null ? '' : (k.regularidadePct >= 80 ? 'ok' : 'atencao')),
+    kpi('"Ainda não declarou"', pct(k.pctAindaNaoDeclarou), 'se subir muito, pode ser dúvida na tela (ver teste de usabilidade)', k.pctAindaNaoDeclarou > 25 ? 'atencao' : ''),
+    kpi('Exportações neste ciclo', k.exportacoes, 'cliques em "Baixar PDF" · risco H4'),
+    kpi('Último backup', k.ultimoBackup ? dataHora(k.ultimoBackup) : 'nunca', k.diasDesdeUltimoBackup === null ? 'faça um backup agora' : `há ${k.diasDesdeUltimoBackup} dia(s)`, k.diasDesdeUltimoBackup === null || k.diasDesdeUltimoBackup > 7 ? 'atencao' : 'ok', true)
+  ].join('');
+
+  document.getElementById('tab-turmas').innerHTML =
+    '<tr><th>Turma</th><th>Sábados registrados</th><th>Último registro</th><th>Cobertura média</th><th>Ritmo por criança</th></tr>' +
+    d.turmas.map(t => `<tr><td>${esc(t.nome)}</td><td>${t.sabadosRegistrados} de ${t.sabadosEsperados}</td>
+      <td>${t.diasDesdeUltimoRegistro === null ? 'nunca' : 'há ' + t.diasDesdeUltimoRegistro + ' dia(s)'}</td>
+      <td>${pct(t.coberturaMediaPct)}</td><td>${t.ritmoSegundosPorCrianca === null ? '—' : t.ritmoSegundosPorCrianca + 's'}</td></tr>`).join('');
+
+  document.getElementById('tab-sessoes').innerHTML = d.sessoesRecentes.length
+    ? '<tr><th>Data</th><th>Turma</th><th>Registradas</th><th>Ausentes</th><th>Cobertura</th><th>Tempo ativo</th><th>Ritmo</th></tr>' +
+      d.sessoesRecentes.map(x => `<tr><td>${esc(new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR'))}</td><td>${esc(x.turma)}</td><td>${x.registradas}</td><td>${x.ausentes}</td>
+        <td><b>${pct(x.coberturaPct)}</b></td><td>${x.tempoTotalSegundos == null ? '—' : Math.floor(x.tempoTotalSegundos / 60) + 'min ' + (x.tempoTotalSegundos % 60) + 's'}</td>
+        <td>${x.ritmoSegundosPorCrianca == null ? '—' : x.ritmoSegundosPorCrianca + 's/criança'}</td></tr>`).join('')
+    : '<tr><td>Nenhuma sessão encerrada neste ciclo ainda.</td></tr>';
+
+  document.getElementById('tab-amplitude').innerHTML =
+    '<tr><th>Ciclo</th><th>Categorias diferentes</th></tr>' +
+    d.amplitudePorCiclo.map(c => `<tr><td>${esc(c.cicloNome)}</td><td>${c.amplitude}</td></tr>`).join('');
+}
+
+// ---------- 2. Pessoas ----------
+async function carregarPessoas() {
+  const [pessoas, turmasCad] = await Promise.all([api('/admin/usuarios'), api('/admin/turmas')]);
+  document.getElementById('tab-turmas-cad').innerHTML = '<tr><th>Turma</th><th>Horário</th><th>Crianças</th></tr>' +
+    turmasCad.map(t => `<tr><td>${esc(t.nome)}</td><td>${esc(t.horario)}</td><td>${t.criancas}</td></tr>`).join('');
+  document.getElementById('tab-pessoas').innerHTML =
+    '<tr><th>Nome</th><th>Papel</th><th>Pode exportar</th><th>Situação</th><th>Ações</th></tr>' +
+    pessoas.map(p => {
+      const ehEu = p.id === eu.id;
+      const papelCelula = p.papel === 'administrador'
+        ? 'Administrador' + (p.pin_provisorio ? ' <span class="tag inativo">PIN provisório</span>' : '')
+        : `<select onchange="alterarPapel(${Number(p.id)}, this.value)">
+             ${['coordenadora', 'educadora_voluntaria'].map(r => `<option value="${r}" ${p.papel === r ? 'selected' : ''}>${ROTULOS_PAPEL[r]}</option>`).join('')}
+           </select>`;
+      const acoes = [
+        p.papel === 'administrador' ? `<button class="btn btn-s btn-mini" onclick="abrirPin(${Number(p.id)})">${ehEu ? 'Trocar meu PIN' : 'Redefinir PIN'}</button>` : '',
+        ehEu ? '' : `<button class="btn btn-s btn-mini" onclick="alternarAtivo(${Number(p.id)}, ${p.ativo ? 'false' : 'true'})">${p.ativo ? 'Desativar' : 'Reativar'}</button>`
+      ].join(' ');
+      const exporta = p.papel === 'administrador'
+        ? '<span class="tag ativo">Sempre</span>'
+        : `<label><input type="checkbox" ${p.pode_exportar ? 'checked' : ''} onchange="alterarExporta(${Number(p.id)}, this.checked)"> ${p.pode_exportar ? 'Sim' : 'Não'}</label>`;
+      return `<tr><td>${esc(p.nome)}${ehEu ? ' (você)' : ''}</td><td>${papelCelula}</td><td>${exporta}</td>
+        <td><span class="tag ${p.ativo ? 'ativo' : 'inativo'}">${p.ativo ? 'Ativo' : 'Inativo'}</span></td><td>${acoes}</td></tr>`;
+    }).join('');
+}
+
+async function criarPessoa() {
+  const corpo = { nome: document.getElementById('np-nome').value, papel: document.getElementById('np-papel').value, pin: document.getElementById('np-pin').value, podeExportar: document.getElementById('np-exporta').checked };
+  try {
+    await api('/admin/usuarios', { method: 'POST', body: JSON.stringify(corpo) });
+    mensagem('msg-pessoa', 'Pessoa cadastrada.', 'sucesso');
+    document.getElementById('np-nome').value = ''; document.getElementById('np-pin').value = '';
+    carregarPessoas();
+  } catch (e) { mensagem('msg-pessoa', e.message, 'erro'); }
+}
+async function alterarPapel(id, papel) {
+  try { await api(`/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ papel }) }); }
+  catch (e) { alert(e.message); }
+  carregarPessoas();
+}
+async function alterarExporta(id, podeExportar) {
+  try { await api(`/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ podeExportar }) }); }
+  catch (e) { alert(e.message); }
+  carregarPessoas();
+}
+async function alternarAtivo(id, ativo) {
+  if (!ativo && !confirm('Desativar esta pessoa? Ela perde o acesso imediatamente (o histórico dela é mantido).')) return;
+  try { await api(`/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo }) }); }
+  catch (e) { alert(e.message); }
+  carregarPessoas();
+}
+function abrirPin(id) {
+  pinAlvo = id;
+  const ehEu = id === eu.id;
+  document.getElementById('dlg-pin-titulo').textContent = ehEu ? 'Trocar meu PIN' : 'Redefinir PIN (ficará provisório)';
+  document.getElementById('dlg-atual-campo').hidden = !ehEu;
+  ['dlg-atual', 'dlg-novo', 'dlg-conf'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('dlg-msg').textContent = '';
+  document.getElementById('dlg-pin').showModal();
+}
+async function salvarPin() {
+  const novo = document.getElementById('dlg-novo').value;
+  if (novo !== document.getElementById('dlg-conf').value) { document.getElementById('dlg-msg').textContent = 'Os dois PINs novos não conferem.'; return; }
+  try {
+    await api(`/admin/usuarios/${pinAlvo}/pin`, { method: 'POST', body: JSON.stringify({ pin: novo, pinAtual: document.getElementById('dlg-atual').value }) });
+    document.getElementById('dlg-pin').close();
+    carregarPessoas(); carregarVisao(document.getElementById('sel-ciclo').value);
+  } catch (e) { document.getElementById('dlg-msg').textContent = e.message; }
+}
+
+// ---------- 3. Ciclos ----------
+function renderCiclos() {
+  if (!ultimaVisao) return;
+  document.getElementById('tab-ciclos').innerHTML =
+    '<tr><th>Ciclo</th><th>Início</th><th>Fim</th><th>Situação</th></tr>' +
+    ultimaVisao.ciclos.map(c => `<tr><td>${esc(c.nome)}</td><td>${esc(c.data_inicio)}</td><td>${c.data_fim ? esc(c.data_fim) : '—'}</td>
+      <td><span class="tag ${c.data_fim ? 'inativo' : 'ativo'}">${c.data_fim ? 'Encerrado (travado)' : 'Em andamento'}</span></td></tr>`).join('');
+}
+async function encerrarCiclo() {
+  const confirmar = document.getElementById('nc-confirma').checked;
+  try {
+    const r = await api('/admin/ciclos/encerrar', { method: 'POST', body: JSON.stringify({ novoNome: document.getElementById('nc-nome').value, confirmar }) });
+    mensagem('msg-ciclo', `Ciclo "${r.cicloEncerrado}" encerrado. Novo ciclo aberto: "${r.cicloNovo}".`, 'sucesso');
+    document.getElementById('nc-nome').value = ''; document.getElementById('nc-confirma').checked = false;
+    await carregarVisao(); renderCiclos();
+  } catch (e) { mensagem('msg-ciclo', e.message, 'erro'); }
+}
+
+// ---------- 4. Sistema ----------
+function renderBackup() {
+  const k = ultimaVisao && ultimaVisao.kpis;
+  document.getElementById('info-backup').innerHTML = k && k.ultimoBackup
+    ? `Último backup: <b>${dataHora(k.ultimoBackup)}</b> (há ${k.diasDesdeUltimoBackup} dia(s)).` : 'Nenhum backup registrado ainda.';
+}
+async function baixarBackup() {
+  mensagem('msg-backup', 'Gerando backup...', '');
+  try {
+    const resp = await fetch('/api/admin/backup', { method: 'POST', credentials: 'same-origin' });
+    if (!resp.ok) throw new Error((await resp.json()).erro || 'Falha ao gerar o backup.');
+    const nome = (resp.headers.get('content-disposition') || '').match(/filename="?([^"]+)"?/)?.[1] || 'backup.db';
+    const url = URL.createObjectURL(await resp.blob());
+    const a = Object.assign(document.createElement('a'), { href: url, download: nome });
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    mensagem('msg-backup', `Backup "${nome}" baixado.`, 'sucesso');
+    await carregarVisao(document.getElementById('sel-ciclo').value); renderBackup(); carregarAuditoria();
+  } catch (e) { mensagem('msg-backup', e.message, 'erro'); }
+}
+async function carregarAuditoria() {
+  const linhas = await api('/admin/auditoria?limite=50');
+  document.getElementById('tab-auditoria').innerHTML =
+    '<tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Detalhe</th></tr>' +
+    linhas.map(l => `<tr><td>${dataHora(l.criadoEm)}</td><td>${esc(l.usuario || 'Sistema')}</td><td>${esc(ROTULOS_ACAO[l.acao] || l.acao)}</td><td>${esc(l.detalhe || '')}</td></tr>`).join('');
+}
+
+iniciar();
+</script>
+</body>
+</html>

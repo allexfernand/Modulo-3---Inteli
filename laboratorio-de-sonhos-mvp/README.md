@@ -7,6 +7,19 @@ Aplicação do **Instituto Ebenézer** para registrar, ao fim da oficina de sáb
 - Banco: SQLite nativo do Node (`node:sqlite`), um arquivo local.
 - Todos os dados que acompanham o projeto são **sintéticos**.
 
+Código: https://github.com/allexfernand/Modulo-3---Inteli
+
+Demonstração publicada: https://laboratorio-de-sonhos-mvp.onrender.com
+
+A demonstração roda no plano gratuito. A instância dorme depois de cerca de 15 minutos sem acesso e demora cerca de 50 segundos para acordar. Ao acordar, o disco é recriado e o banco volta aos dados sintéticos do seed: o que foi registrado nessa demonstração não permanece. A operação de sábado, a que guarda os dados, é no computador do Instituto, como a Parte 1 descreve.
+
+## Vídeo demonstrativo
+
+Dois takes gravados em 8 de outubro de 2026, publicados com acesso livre:
+
+- **Celular.** Fluxo de registro do sábado, do perfil até a exportação.
+- **Computador.** Administração: troca do PIN provisório, cobertura por sessão, quem pode exportar e backup.
+
 > Duas partes: **Parte 1 — para pessoas** (instalar e usar) e **Parte 2 — para IA** (como um agente como o Claude Code deve ler, rodar e alterar o projeto sem quebrar nada). Pessoas também podem ler a Parte 2.
 
 ---
@@ -118,7 +131,7 @@ Reiniciar o servidor desloga todo mundo (sessões em memória): é só tocar no 
 
 ## 10. Documentos de apoio (pasta `docs/`)
 
-`modelo-de-dados.md` (banco), `decisoes-tecnicas.md` (porquê de cada escolha, defeitos corrigidos), `roteiro-video-demo.md` (roteiro do vídeo). Saídas reais dos testes em `testes/evidencias/`.
+`modelo-de-dados.md` (banco), `decisoes-tecnicas.md` (porquê de cada escolha, defeitos corrigidos), `roteiro-video-demo.md` (roteiro usado na gravação). Os dois takes estão no topo deste README. Saídas reais dos testes em `testes/evidencias/`.
 
 ---
 
@@ -262,7 +275,7 @@ Usuários: 1 Marli (coordenadora, exporta), 2 Educadora Voluntária (não export
 
 ## J. O que está pronto × o que NÃO está
 
-**Pronto e testado:** registro numa tela (cartões, folha, ausência, alterar/limpar, filtro de pendentes, encerrar sem registrar todo mundo), uma sessão aberta por turma, tempo ativo, painel (3 estados, cobertura de quem veio, percurso, estados observados, evolução com amplitude), exportação por permissão, Administração (KPIs, cobertura por sessão, pessoas e "quem exporta", turmas, encerrar ciclo, backup, auditoria), PIN com bloqueio. Verificado em Chromium real (44 checagens) e 28 testes de API.
+**Pronto e testado:** registro numa tela (cartões, folha, ausência, alterar/limpar, filtro de pendentes, encerrar sem registrar todo mundo), uma sessão aberta por turma, tempo ativo, painel (3 estados, cobertura de quem veio, percurso, estados observados, evolução com amplitude), exportação por permissão, Administração (KPIs, cobertura por sessão, pessoas e "quem exporta", turmas, encerrar ciclo, backup, auditoria), PIN com bloqueio. Verificado em Chromium real (44 checagens) e 28 testes de API. Vídeo demonstrativo gravado em dois takes (celular e administração).
 
 **Não feito / não verificado:**
 - **Ritmo de registro de uma pessoa real** nesta tela (o fluxo mudou em relação ao protótipo validado no Figma): falta teste de usabilidade cronometrado.
@@ -271,7 +284,6 @@ Usuários: 1 Marli (coordenadora, exporta), 2 Educadora Voluntária (não export
 - Cadastrar/remover turmas e crianças; associação educadora↔turma (depende de validação LGPD).
 - "Dupla medição" (comparar duas medições da mesma turma com ~6 semanas de intervalo, risco H2 do pitch): o painel compara **ciclos**, não duas medições dentro de um ciclo.
 - Vários programas (o slide 11 fala em expansão para mais 3): o modelo atual é de um programa só.
-- Gravação do vídeo (só o roteiro).
 
 ## K. Definição de "pronto" para qualquer alteração
 
